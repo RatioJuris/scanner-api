@@ -41,7 +41,7 @@ public class WiaEngine
                 try
                 {
                     if (info == null) continue;
-                    if (info.Type.ToString() == WiaDeviceTypeScanner)
+                    if (info.Type?.ToString() == WiaDeviceTypeScanner)
                     {
                         dynamic? props = info.Properties;
                         if (props == null) continue;
@@ -73,7 +73,11 @@ public class WiaEngine
                 dynamic? props = connectedDevice.Properties;
                 if (props != null)
                 {
-                    statusFlags = (int)props[WIA_DPS_DOCUMENT_HANDLING_STATUS].Value; 
+                    dynamic? statusProp = props[WIA_DPS_DOCUMENT_HANDLING_STATUS];
+                    if (statusProp?.Value != null)
+                    {
+                        statusFlags = (int)statusProp.Value; 
+                    }
                 }
             }
             catch { return "ONLINE: Connected | Sensors locked/busy"; }
@@ -125,19 +129,20 @@ public class WiaEngine
             } 
             catch { }
 
-            dynamic? imageFile = null;
+            dynamic? transferResult = null;
             try
             {
                 Type? dlgType = Type.GetTypeFromProgID("WIA.CommonDialog");
                 if (dlgType == null) return false;
                 dynamic? commonDialog = Activator.CreateInstance(dlgType);
                 if (commonDialog == null) return false;
-                imageFile = commonDialog.ShowTransfer(item, wiaFormatJpeg, false);
+                transferResult = commonDialog.ShowTransfer(item, wiaFormatJpeg, false);
             }
             catch (Exception ex) { Console.WriteLine($"[!] Memory transfer failed: {ex.Message}"); return false; }
 
-            if (imageFile != null)
+            if (transferResult != null)
             {
+                dynamic imageFile = transferResult;
                 if (File.Exists(targetPath)) File.Delete(targetPath);
                 imageFile.SaveFile(targetPath);
                 return true;
