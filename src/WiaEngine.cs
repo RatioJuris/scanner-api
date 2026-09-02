@@ -40,9 +40,12 @@ public class WiaEngine
             {
                 try
                 {
+                    if (info == null) continue;
                     if (info.Type.ToString() == WiaDeviceTypeScanner)
                     {
-                        string name = info.Properties["Name"].Value?.ToString() ?? "Unknown Scanner Node";
+                        dynamic? props = info.Properties;
+                        if (props == null) continue;
+                        string name = props["Name"]?.Value?.ToString() ?? "Unknown Scanner Node";
                         string deviceId = info.DeviceID?.ToString() ?? string.Empty;
                         if (!string.IsNullOrEmpty(deviceId)) scannerMap[name] = deviceId;
                     }
@@ -65,7 +68,14 @@ public class WiaEngine
             if (connectedDevice == null) return "OFFLINE: Established reference is null";
 
             int statusFlags = 0;
-            try { statusFlags = (int)connectedDevice.Properties[WIA_DPS_DOCUMENT_HANDLING_STATUS].Value; }
+            try 
+            { 
+                dynamic? props = connectedDevice.Properties;
+                if (props != null)
+                {
+                    statusFlags = (int)props[WIA_DPS_DOCUMENT_HANDLING_STATUS].Value; 
+                }
+            }
             catch { return "ONLINE: Connected | Sensors locked/busy"; }
 
             if ((statusFlags & 1) == 1) return "ERROR: PHYSICAL PAPER JAM INSIDE UNIT";
@@ -85,24 +95,44 @@ public class WiaEngine
             dynamic? targetInfo = FindDeviceInfo(deviceId);
             if (targetInfo == null) return false;
             dynamic? connectedDevice = targetInfo.Connect();
-            if (connectedDevice == null || connectedDevice.Items.Count == 0) return false;
-            
-            dynamic itemProperties = connectedDevice.Items[1].Properties;
-            try
-            {
-                itemProperties[WIA_IPS_XRES].Value = dpi;
-                itemProperties[WIA_IPS_YRES].Value = dpi;
-                itemProperties[WIA_IPA_DATATYPE].Value = colorMode; 
-            }
-            catch (Exception ex) { Console.WriteLine($"[-] Warning properties rejected: {ex.Message}"); }
+            if (connectedDevice == null) return false;
 
-            try { connectedDevice.Properties[WIA_DPS_DOCUMENT_HANDLING_SELECT].Value = paperSource; } catch { }
+            dynamic? items = connectedDevice.Items;
+            if (items == null || items.Count == 0) return false;
+            
+            dynamic? item = items[1];
+            if (item == null) return false;
+
+            dynamic? itemProperties = item.Properties;
+            if (itemProperties != null)
+            {
+                try
+                {
+                    itemProperties[WIA_IPS_XRES].Value = dpi;
+                    itemProperties[WIA_IPS_YRES].Value = dpi;
+                    itemProperties[WIA_IPA_DATATYPE].Value = colorMode; 
+                }
+                catch (Exception ex) { Console.WriteLine($"[-] Warning properties rejected: {ex.Message}"); }
+            }
+
+            try 
+            { 
+                dynamic? devProps = connectedDevice.Properties;
+                if (devProps != null)
+                {
+                    devProps[WIA_DPS_DOCUMENT_HANDLING_SELECT].Value = paperSource; 
+                }
+            } 
+            catch { }
 
             dynamic? imageFile = null;
             try
             {
-                dynamic commonDialog = Activator.CreateInstance(Type.GetTypeFromProgID("WIA.CommonDialog")!);
-                imageFile = commonDialog.ShowTransfer(connectedDevice.Items[1], wiaFormatJpeg, false);
+                Type? dlgType = Type.GetTypeFromProgID("WIA.CommonDialog");
+                if (dlgType == null) return false;
+                dynamic? commonDialog = Activator.CreateInstance(dlgType);
+                if (commonDialog == null) return false;
+                imageFile = commonDialog.ShowTransfer(item, wiaFormatJpeg, false);
             }
             catch (Exception ex) { Console.WriteLine($"[!] Memory transfer failed: {ex.Message}"); return false; }
 
@@ -126,8 +156,12 @@ public class WiaEngine
             {
                 try
                 {
+                    if (info == null) continue;
                     string idStr = info.DeviceID?.ToString() ?? string.Empty;
-                    string nameStr = info.Properties["Name"].Value?.ToString() ?? string.Empty;
+                    dynamic? props = info.Properties;
+                    if (props == null) continue;
+                    dynamic? nameProp = props["Name"];
+                    string nameStr = nameProp?.Value?.ToString() ?? string.Empty;
                     if (idStr == identifier || nameStr.Contains(identifier, StringComparison.OrdinalIgnoreCase)) return info;
                 }
                 catch { }
