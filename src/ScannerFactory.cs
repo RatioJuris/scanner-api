@@ -2,41 +2,27 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-public enum ProtocolType
-{
-    Wia,
-    Twain,
-    Escl,
-    Unknown
-}
+public enum ProtocolType { Wia, Twain, Escl, Unknown }
 
 public class ScannerFactory
 {
     public static ProtocolType DetectProtocol(string identifier)
     {
         if (string.IsNullOrEmpty(identifier)) return ProtocolType.Unknown;
-
-        // 1. Route to eSCL driverless stack if it maps to a network endpoint or IP address
         if (identifier.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
-            identifier.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || 
-            identifier.Contains("."))
+            identifier.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || identifier.Contains("."))
         {
             return ProtocolType.Escl;
         }
-
-        // 2. Query low-level Win32 TWAIN DSM registry cache to see if the name matches a vendor driver identity
         try
         {
             using var twain = new TwainEngine();
-            var twainDevices = twain.EnumerateScanners();
-            if (twainDevices.Exists(x => x.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            if (twain.EnumerateScanners().Exists(x => x.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
             {
                 return ProtocolType.Twain;
             }
         }
-        catch { /* Fallback to check WIA if TWAIN subsystem environment drops active context */ }
-
-        // 3. Fallback to native Windows WIA for registry strings, local descriptors, or GUID values
+        catch { }
         return ProtocolType.Wia;
     }
 
@@ -52,16 +38,11 @@ public class ScannerFactory
     }
 }
 
-// =========================================================================
-// CONCRETE WRAPPER MAPPING TRANSLATIONS
-// =========================================================================
-
 public class EsclDeviceWrapper : IScannerDevice
 {
     private readonly EsclEngine _engine = new EsclEngine();
     public async Task<string> GetStatusAsync(string id) => await _engine.QueryRealtimeStatusAsync(id);
-    public async Task<bool> ExecuteScanAsync(string id, int dpi, string color, string source, string path) =>
-        await _engine.ExecuteScanJobAsync(id, dpi, color, source, path);
+    public async Task<bool> ExecuteScanAsync(string id, int dpi, string color, string source, string path) => await _engine.ExecuteScanJobAsync(id, dpi, color, source, path);
     public void Dispose() => _engine.Dispose();
 }
 
@@ -73,8 +54,7 @@ public class WiaDeviceWrapper : IScannerDevice
     {
         int colorMode = color.ToLower() switch { "gray" => 2, "bw" => 4, _ => 1 };
         int paperSource = source.ToLower() == "feeder" ? 1 : 2;
-        bool success = _engine.ExecuteScanJob(id, dpi, colorMode, paperSource, path);
-        return Task.FromResult(success);
+        return Task.FromResult(_engine.ExecuteScanJob(id, dpi, colorMode, paperSource, path));
     }
     public void Dispose() { }
 }
@@ -95,8 +75,7 @@ public class TwainDeviceWrapper : IScannerDevice
         {
             ushort pixelType = color.ToLower() switch { "gray" => 1, "bw" => 0, _ => 2 };
             ushort paperSource = source.ToLower() == "feeder" ? (ushort)1 : (ushort)0;
-            bool success = _engine.ExecuteScanJob(dpi, pixelType, paperSource);
-            return Task.FromResult(success);
+            return Task.FromResult(_engine.ExecuteScanJob(dpi, pixelType, paperSource));
         }
         return Task.FromResult(false);
     }
