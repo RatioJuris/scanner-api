@@ -1,0 +1,37 @@
+name: Build Scanner API Engine
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Ensure Build Directory Exists
+        run: New-Item -ItemType Directory -Force -Path ./build
+
+      - name: Restore NuGet Packages
+        run: dotnet restore src/scanner-api.csproj
+
+      - name: Compile Single-File Executable
+        run: |
+          dotnet publish src/scanner-api.csproj -c Release -r win-x64 --self-contained false -o ./build
+
+      - name: Upload Compiled Binary Release Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-api-windows-x64
+          path: ./build/
+          if-no-files-found: error
