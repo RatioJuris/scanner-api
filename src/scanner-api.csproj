@@ -7,8 +7,6 @@
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>scanner-api</AssemblyName>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
-
-    <!-- DEVELOPER IDENTITY & EMBEDDED METADATA SEEDING -->
     <Version>1.0.4.0</Version>
     <FileVersion>1.0.4.0</FileVersion>
     <AssemblyVersion>1.0.4.0</AssemblyVersion>
@@ -16,7 +14,7 @@
     <Company>RatioJuris</Company>
     <Product>Universal Scanner API Integration Service by RatioJuris</Product>
     <Description>Proprietary zero-dependency middleware engine mapping WIA, TWAIN, and eSCL capabilities natively.</Description>
-    <Copyright>Copyright © 2026 RatioJuris. All Rights Reserved.</Copyright>
+    <Copyright>Copyright 2026 RatioJuris. All Rights Reserved.</Copyright>
     <ApplicationIcon>app_icon.ico</ApplicationIcon>
   </PropertyGroup>
 
