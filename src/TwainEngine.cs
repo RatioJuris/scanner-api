@@ -105,7 +105,7 @@ public class TwainEngine : IDisposable
             ushort rc = _is64Bit ? DSM64(ref _appIdentity, IntPtr.Zero, DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, ref sourceIdentity) : DSM32(ref _appIdentity, IntPtr.Zero, DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, ref sourceIdentity);
             while (rc == TWRC_SUCCESS)
             {
-                if (sourceIdentity.ProductName.Equals(scannerName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(sourceIdentity.ProductName, scannerName, StringComparison.OrdinalIgnoreCase))
                 {
                     ushort openRc = _is64Bit ? DSM64(ref _appIdentity, IntPtr.Zero, DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, ref sourceIdentity) : DSM32(ref _appIdentity, IntPtr.Zero, DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, ref sourceIdentity);
                     if (openRc == TWRC_SUCCESS) { _activeSource = sourceIdentity; _isDsOpen = true; return true; }
